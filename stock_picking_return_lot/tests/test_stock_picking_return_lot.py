@@ -65,7 +65,7 @@ class StockPickingReturnLotTest(TransactionCase):
     @classmethod
     def create_return_wiz(cls, picking):
         wizard = cls.env["stock.return.picking"].create({"picking_id": picking.id})
-        wizard.set_quantities()
+        # wizard.set_quantities()
         return wizard
 
     def _create_picking(self, product=None):
@@ -111,48 +111,37 @@ class StockPickingReturnLotTest(TransactionCase):
         picking._action_done()
         return picking
 
-    def test_button_set_quantities(self):
-        wiz = self.create_return_wiz(self.picking)
-        action = wiz.button_set_quantities()
-        self.assertEqual(
-            self.env[action["res_model"]].browse(action["res_id"]),
-            wiz,
-        )
-        return_line_1 = wiz.product_return_moves.filtered(
-            lambda m, lot=self.lot_1: m.lot_id == lot
-        )
-        return_line_2 = wiz.product_return_moves.filtered(
-            lambda m, lot=self.lot_2: m.lot_id == lot
-        )
-        self.assertEqual(return_line_1.quantity, 1)
-        self.assertEqual(return_line_2.quantity, 2)
-
-    def test_excess_quantity(self):
+    def test_restrict_qty(self):
+        self.picking.picking_type_id.restrict_return_qty = True
         wiz = self.create_return_wiz(self.picking)
         return_line = wiz.product_return_moves.filtered(
             lambda m, lot=self.lot_1: m.lot_id == lot
         )
         return_line.quantity = 2
         with self.assertRaisesRegex(
-            UserError,
-            "Line with product test_product and lot 000001 has quantity 2.0 "
-            "but this is higher than the quantity that was shipped out in this "
-            r"lot \(1.0\)",
+            UserError, "more quantities than delivered is not allowed"
         ):
-            wiz.action_create_returns()
+            with self.env.cr.savepoint():
+                wiz.action_create_returns()
+
+        self.picking.picking_type_id.restrict_return_qty = False
+        wiz.action_create_returns()
 
     def test_incorrect_lot(self):
+        self.picking.picking_type_id.restrict_return_qty = True
         wiz = self.create_return_wiz(self.picking)
         return_line = wiz.product_return_moves.filtered(
             lambda m, lot=self.lot_1: m.lot_id == lot
         )
         return_line.lot_id = self.lot_3
         with self.assertRaisesRegex(
-            UserError,
-            "Line with product test_product has lot 000003 but this lot was not "
-            "shipped out in the first place.",
+            UserError, "more quantities than delivered is not allowed"
         ):
-            wiz.action_create_returns()
+            with self.env.cr.savepoint():
+                wiz.action_create_returns()
+
+        self.picking.picking_type_id.restrict_return_qty = False
+        wiz.action_create_returns()
 
     def test_partial_return(self):
         wiz = self.create_return_wiz(self.picking)

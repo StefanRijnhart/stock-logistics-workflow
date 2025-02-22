@@ -5,12 +5,8 @@
 from collections import defaultdict
 
 from odoo import api, fields, models
-from odoo.exceptions import UserError
-from odoo.tools.float_utils import float_compare
 
-CONTEXT_KEY_ACTIONS_CREATE_RETURNS_ALL = (
-    "stock_picking_return_lot.action_create_returns_all"
-)
+CONTEXT_KEY_FORCE_RECOMPUTE = "stock_picking_return_lot.force_recompute"
 
 
 class ReturnPicking(models.TransientModel):
@@ -43,80 +39,33 @@ class ReturnPicking(models.TransientModel):
         for wizard in self:
             for line in wizard.product_return_moves:
                 qties = self._get_qty_by_lot(line.move_id)
-                if qties is None:
-                    continue
                 first = True
                 for lot, qty in qties.items():
                     if qty < 0:
-                        continue
+                        qty = 0
                     if first:
                         line.lot_id = lot
                         first = False
-                    else:
-                        line.copy({"lot_id": lot.id})
+                    elif qty:
+                        line = line.copy({"lot_id": lot.id})
+                    line.quantity = qty
+
         return res
 
-    def button_set_quantities(self):
-        """Set quantities from wizard form"""
-        self.ensure_one()
-        self.set_quantities()
-        action = self.env["ir.actions.actions"]._for_xml_id(
-            "stock.act_stock_return_picking"
-        )
-        action["res_id"] = self.id
-        return action
-
-    def set_quantities(self, only_check=False):
-        """Set, or check quantities to the quantities that were shipped out, per lot"""
-        self.ensure_one()
-        move2line = defaultdict(lambda: self.env["stock.return.picking.line"])
-        for line in self.product_return_moves:
-            move2line[line.move_id] += line
-
-        for move, lines in move2line.items():
-            qties = self._get_qty_by_lot(move)
-            for line in lines:
-                if line.lot_id not in qties:
-                    raise UserError(
-                        self.env._(
-                            "Line with product %(product)s has lot %(lot)s but this "
-                            "lot was not shipped out in the first place.",
-                            product=line.product_id.name or "-",
-                            lot=line.lot_id.name,
-                        )
-                    )
-                if float_compare(
-                    line.quantity,
-                    qties[line.lot_id],
-                    precision_rounding=line.product_id.uom_id.rounding,
-                ) == 1 and not self.env.context.get(
-                    CONTEXT_KEY_ACTIONS_CREATE_RETURNS_ALL
-                ):
-                    # Don't drop quantities silently in interactive mode
-                    raise UserError(
-                        self.env._(
-                            "Line with product %(product)s and lot %(lot)s has "
-                            "quantity %(quantity)s but this is higher than the "
-                            "quantity that was shipped out in this lot "
-                            "(%(shipped_quantity)s)",
-                            product=line.product_id.name,
-                            lot=line.lot_id.name or "-",
-                            quantity=line.quantity,
-                            shipped_quantity=qties[line.lot_id],
-                        )
-                    )
-                if not only_check:
-                    line.quantity = qties[line.lot_id]
+    def _reset_quantities(self):
+        """When asked to return all quantities, reset to restricted quantity per lot"""
+        for wizard in self:
+            for line in wizard.product_return_moves:
+                line.quantity = line.get_returned_restricted_quantity(line.move_id)
 
     def action_create_returns_all(self):
-        self = self.with_context(**{CONTEXT_KEY_ACTIONS_CREATE_RETURNS_ALL: True})
+        """Force a reset of returnable quantities per lot"""
+        self = self.with_context(**{CONTEXT_KEY_FORCE_RECOMPUTE: True})
         return super().action_create_returns_all()
 
     def _create_return(self):
-        if self.env.context.get(CONTEXT_KEY_ACTIONS_CREATE_RETURNS_ALL):
-            self.set_quantities()
-        else:
-            self.set_quantities(only_check=True)
+        if self.env.context.get(CONTEXT_KEY_FORCE_RECOMPUTE):
+            self._reset_quantities()
         picking = super()._create_return()
         for ml in picking.move_line_ids:
             ml.lot_id = ml.move_id.restrict_lot_id

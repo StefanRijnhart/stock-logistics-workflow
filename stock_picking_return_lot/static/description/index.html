@@ -377,10 +377,13 @@ a product with a lot or serial number different from the original
 delivery.</p>
 <p>This module enhances the return process by creating a separate return
 line for each product/lot and automatically pre-filling it with the lot
-from the original delivery. It relies on the <a class="reference external" href="https://github.com/OCA/stock-logistics-workflow/tree/16.0/stock_restrict_lot">Stock Restrict
+from the original delivery. It relies on the <a class="reference external" href="https://github.com/OCA/stock-logistics-workflow/tree/18.0/stock_restrict_lot">Stock Restrict
 Lot</a>
 module to enforce accurate tracking, ensuring that the reception order
 reflects the correct lot or serial number that should be received.</p>
+<p>This module also integrates with [Stock Picking Return Restricted Qty]
+(<a class="reference external" href="https://github.com/OCA/stock-logistics-workflow/tree/18.0/stock_picking_return_restricted_qty">https://github.com/OCA/stock-logistics-workflow/tree/18.0/stock_picking_return_restricted_qty</a>)
+because the quantities are now split up per lot.</p>
 <p><strong>Table of contents</strong></p>
 <div class="contents local topic" id="contents">
 <ul class="simple">
@@ -397,20 +400,17 @@ reflects the correct lot or serial number that should be received.</p>
 <div class="section" id="usage">
 <h1><a class="toc-backref" href="#toc-entry-1">Usage</a></h1>
 <p>To use this module, go to a done receipt or delivery in the inventory,
-and click the Return button. Odoo will show all products without lines
-or lots.</p>
+and click the Return button. Odoo will show all products with the
+originally transferred quantity per lot (minus any quantities that were
+transferred earlier).</p>
 <p>If you click the ‘Return All’ button here, this module will ensure that
 the originally transferred lots and serials are applied automatically to
 the resulting return transfer.</p>
 <p>You can also choose to return only part of the original transfer and
-enter quantities yourself, before clicking the ‘Return’ button. This
-module helps you to determine what can be transferred by adding the ‘Set
-Quantities’ button, which will update the lines on the screen with the
-quantities that are still available to return per lot (the original
-quantities minus any quantities that were returned earlier).</p>
-<p>If you try to accept returns for lots that were not originally
-transferred, or exceed the originally transferred quantities, this
-module will show an error message.</p>
+update the quantities here, before clicking the ‘Return’ button. If the
+picking type of the original transfer was marked to restrict returned
+quantities, you will not be allowed to enter a higher quantity than is
+available to return.</p>
 </div>
 <div class="section" id="bug-tracker">
 <h1><a class="toc-backref" href="#toc-entry-2">Bug Tracker</a></h1>

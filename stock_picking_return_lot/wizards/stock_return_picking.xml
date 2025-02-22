@@ -11,14 +11,6 @@
             <field name="picking_id" position="after">
                 <field name="lots_visible" invisible="True" />
             </field>
-            <field name="product_return_moves" position="before">
-                <button
-                    name="button_set_quantities"
-                    string="Set Quantities"
-                    type="object"
-                    data-hotkey="f"
-                />
-            </field>
             <xpath expr="//field[@name='product_id']" position="after">
                 <field
                     name="lot_id"

@@ -37,9 +37,13 @@ delivery.
 This module enhances the return process by creating a separate return
 line for each product/lot and automatically pre-filling it with the lot
 from the original delivery. It relies on the `Stock Restrict
-Lot <https://github.com/OCA/stock-logistics-workflow/tree/16.0/stock_restrict_lot>`__
+Lot <https://github.com/OCA/stock-logistics-workflow/tree/18.0/stock_restrict_lot>`__
 module to enforce accurate tracking, ensuring that the reception order
 reflects the correct lot or serial number that should be received.
+
+This module also integrates with [Stock Picking Return Restricted Qty]
+(https://github.com/OCA/stock-logistics-workflow/tree/18.0/stock_picking_return_restricted_qty)
+because the quantities are now split up per lot.
 
 **Table of contents**
 
@@ -50,23 +54,19 @@ Usage
 =====
 
 To use this module, go to a done receipt or delivery in the inventory,
-and click the Return button. Odoo will show all products without lines
-or lots.
+and click the Return button. Odoo will show all products with the
+originally transferred quantity per lot (minus any quantities that were
+transferred earlier).
 
 If you click the 'Return All' button here, this module will ensure that
 the originally transferred lots and serials are applied automatically to
 the resulting return transfer.
 
 You can also choose to return only part of the original transfer and
-enter quantities yourself, before clicking the 'Return' button. This
-module helps you to determine what can be transferred by adding the 'Set
-Quantities' button, which will update the lines on the screen with the
-quantities that are still available to return per lot (the original
-quantities minus any quantities that were returned earlier).
-
-If you try to accept returns for lots that were not originally
-transferred, or exceed the originally transferred quantities, this
-module will show an error message.
+update the quantities here, before clicking the 'Return' button. If the
+picking type of the original transfer was marked to restrict returned
+quantities, you will not be allowed to enter a higher quantity than is
+available to return.
 
 Bug Tracker
 ===========

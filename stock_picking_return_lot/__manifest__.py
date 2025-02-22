@@ -9,6 +9,6 @@
     "license": "AGPL-3",
     "author": "Camptocamp, ACSONE SA/NV, Odoo Community Association (OCA)",
     "website": "https://github.com/OCA/stock-logistics-workflow",
-    "depends": ["stock", "stock_restrict_lot"],
+    "depends": ["stock", "stock_restrict_lot", "stock_picking_return_restricted_qty"],
     "data": ["wizards/stock_return_picking.xml"],
 }

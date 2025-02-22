@@ -1,7 +1,7 @@
 # Copyright 2024 ACSONE SA/NV
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
 
-from odoo import fields, models
+from odoo import api, fields, models
 
 
 class StockReturnPickingLine(models.TransientModel):
@@ -25,3 +25,24 @@ class StockReturnPickingLine(models.TransientModel):
         vals = super()._prepare_move_default_values(picking)
         vals["restrict_lot_id"] = self.lot_id.id
         return vals
+
+    @api.model
+    def get_returned_restricted_quantity(self, stock_move):
+        if self:
+            self.ensure_one()
+        return sum(
+            stock_move.move_line_ids.filtered(
+                lambda sml: sml.lot_id == self.lot_id
+            ).mapped("quantity")
+        ) - sum(
+            stock_move.move_dest_ids.filtered(
+                lambda sm: sm.origin_returned_move_id == stock_move
+            )
+            .move_line_ids.filtered(lambda sml: sml.lot_id == self.lot_id)
+            .mapped("quantity")
+        )
+
+    @api.onchange("quantity", "lot_id")
+    def _onchange_quantity(self):
+        # The restricted quantity can now depend on the lot
+        return super()._onchange_quantity()
